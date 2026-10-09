@@ -22,9 +22,19 @@ li.on{background:var(--ac);color:#fff}
 audio{width:100%;margin-top:8px}
 input[type=range]{width:100%}
 small{color:var(--mu)}
+#bgl{position:fixed;inset:0;z-index:-1;background-size:cover;background-position:center}
+.hasbg{--mu:#ddd;color:#fff}
+.hasbg .card{background:rgba(0,0,0,.55);color:#fff;backdrop-filter:blur(6px)}
+.hasbg input[type=text]{background:rgba(0,0,0,.45);color:#fff}
 </style>
 </head>
 <body>
+<div id="bgl"></div>
+<div class="card">
+  <h2>🖼️ พื้นหลัง</h2>
+  <input id="bu" type="text" placeholder="วางลิงก์รูปภาพ (https://...jpg / png)">
+  <button id="bs">ตั้งพื้นหลัง</button><button class="s" id="bc">ล้าง</button>
+</div>
 <div class="card">
   <h2>🎵 เพลง</h2>
   <label class="btn">เลือกไฟล์เพลงจากเครื่อง<input id="f" type="file" accept="audio/*" multiple hidden></label>
@@ -61,7 +71,7 @@ function draw(){
   q.forEach(function(t,n){var li=document.createElement('li');li.textContent=t.name;if(n==i)li.className='on';li.onclick=function(){play(n)};l.appendChild(li)});
 }
 function play(n){
-  i=n;a.src=q[n].url;a.play().catch(function(){});
+  i=n;a.src=q[n].url;a.play().catch(function(){});setMeta(q[n].name);
   now.innerHTML='<small>กำลังเล่น: '+q[n].name.replace(/</g,'')+'</small>';draw();
 }
 a.onended=function(){if(i+1<q.length)play(i+1);else if(q.length)play(0)};
@@ -75,6 +85,40 @@ document.getElementById('go').onclick=function(){
   w.innerHTML='<div class="vid"><iframe id="ytf" src="https://www.youtube.com/embed/'+m[1]+'?playsinline=1'+o+'" allow="autoplay; encrypted-media; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>';
 };
 document.getElementById('x').onclick=function(){yf=null;document.getElementById('vw').innerHTML=''};
+
+function setMeta(name){
+  if(!('mediaSession' in navigator))return;
+  try{navigator.mediaSession.metadata=new MediaMetadata({title:name.replace(/\.[^.]+$/,''),artist:'เพลง + YouTube'})}catch(e){}
+}
+(function(){
+  if(!('mediaSession' in navigator))return;
+  var ms=navigator.mediaSession;
+  function h(n,f){try{ms.setActionHandler(n,f)}catch(e){}}
+  h('play',function(){a.play()});
+  h('pause',function(){a.pause()});
+  h('previoustrack',function(){if(q.length)play((i-1+q.length)%q.length)});
+  h('nexttrack',function(){if(q.length)play((i+1)%q.length)});
+  h('seekbackward',function(){a.currentTime=Math.max(0,a.currentTime-10)});
+  h('seekforward',function(){a.currentTime=Math.min(a.duration||1e9,a.currentTime+10)});
+})();
+var bgl=document.getElementById('bgl');
+function setBg(u){
+  if(u){bgl.style.backgroundImage='url("'+u.replace(/"/g,'%22')+'")';document.body.classList.add('hasbg')}
+  else{bgl.style.backgroundImage='';document.body.classList.remove('hasbg')}
+}
+try{var sv=localStorage.getItem('bgurl');if(sv){setBg(sv);document.getElementById('bu').value=sv}}catch(e){}
+document.getElementById('bs').onclick=function(){
+  var u=document.getElementById('bu').value.trim();
+  if(!u)return;
+  var im=new Image();
+  im.onload=function(){setBg(u);try{localStorage.setItem('bgurl',u)}catch(e){}};
+  im.onerror=function(){alert('โหลดรูปไม่ได้ ลองลิงก์รูปตรง ๆ ที่ลงท้ายด้วย .jpg หรือ .png')};
+  im.src=u;
+};
+document.getElementById('bc').onclick=function(){
+  setBg('');document.getElementById('bu').value='';
+  try{localStorage.removeItem('bgurl')}catch(e){}
+};
 </script>
 </body>
 </html>
