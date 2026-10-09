@@ -54,9 +54,9 @@ small{color:var(--mu)}
   <h2>▶️ วิดีโอ / YouTube</h2>
   <input id="u" type="text" placeholder="วางลิงก์ YouTube หรือลิงก์วิดีโอ .mp4">
   <button id="go">เปิดวิดีโอ</button><button class="s" id="x">ปิด</button>
-  <label class="btn">เลือกวิดีโอจากเครื่อง<input id="vf" type="file" accept="video/*" hidden></label>
+  <label class="btn">เลือกวิดีโอ/เสียงจากเครื่อง<input id="vf" type="file" accept="video/*,audio/*" hidden></label>
   <div id="vw"></div>
-  <div id="vvw" style="display:none"><small>ระดับเสียงวิดีโอ</small><input id="vv" type="range" min="0" max="1" step="0.05" value="1"></div>
+  <div id="vvw"><small>ระดับเสียงวิดีโอ / YouTube</small><input id="vv" type="range" min="0" max="1" step="0.05" value="1"></div>
   <small>YouTube ต้องใช้อินเทอร์เน็ต / ไฟล์ในเครื่องเล่นออฟไลน์ได้</small>
 </div>
 <script>
@@ -85,14 +85,19 @@ var yf=null;
 document.getElementById('go').onclick=function(){
   var m=document.getElementById('u').value.match(/(?:youtu\.be\/|v=|embed\/|shorts\/|live\/)([\w-]{11})/);
   var raw=document.getElementById('u').value.trim();
-  if(!m){if(/^https?:\/\/.+\.(mp4|webm|mov|m4v)(\?.*)?$/i.test(raw)){playVid(raw);return}alert('ลิงก์ไม่ถูกต้อง');return}
-  document.getElementById('vvw').style.display='none';
+  if(!m){if(/^https?:\/\/.+\.(mp4|webm|mov|m4v|mp3|m4a|wav|ogg|oga|aac|flac|opus)(\?.*)?$/i.test(raw)){playVid(raw);return}alert('ลิงก์ไม่ถูกต้อง');return}
   var o='';
   try{if(location.origin&&location.origin!=='null')o='&origin='+encodeURIComponent(location.origin)}catch(e){}
   var w=document.getElementById('vw');
-  w.innerHTML='<div class="vid"><iframe id="ytf" src="https://www.youtube.com/embed/'+m[1]+'?playsinline=1'+o+'" allow="autoplay; encrypted-media; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>';
+  w.innerHTML='<div class="vid"><iframe id="ytf" src="https://www.youtube.com/embed/'+m[1]+'?playsinline=1&enablejsapi=1'+o+'" allow="autoplay; encrypted-media; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>';
+  yf=document.getElementById('ytf');
+  yf.onload=function(){
+    yf.contentWindow.postMessage(JSON.stringify({event:'listening'}),'https://www.youtube.com');
+    setTimeout(function(){ytVolSet()},800);
+    setTimeout(function(){ytVolSet()},2500);
+  };
 };
-document.getElementById('x').onclick=function(){yf=null;document.getElementById('vw').innerHTML='';document.getElementById('vvw').style.display='none'};
+document.getElementById('x').onclick=function(){yf=null;document.getElementById('vw').innerHTML=''};
 
 function setMeta(name){
   if(!('mediaSession' in navigator))return;
@@ -155,10 +160,14 @@ function playVid(u){
   w.innerHTML='<div class="vid"><video id="vp" controls playsinline autoplay style="position:absolute;inset:0;width:100%;height:100%"></video></div>';
   var v=document.getElementById('vp');
   v.src=u;v.volume=+document.getElementById('vv').value;
-  document.getElementById('vvw').style.display='block';
+  yf=null;
+}
+function ytVolSet(){
+  if(yf&&yf.contentWindow)yf.contentWindow.postMessage(JSON.stringify({event:'command',func:'setVolume',args:[Math.round(+document.getElementById('vv').value*100)]}),'https://www.youtube.com');
 }
 document.getElementById('vv').oninput=function(e){
   var v=document.getElementById('vp');if(v)v.volume=+e.target.value;
+  ytVolSet();
 };
 document.getElementById('vf').onchange=function(e){
   var f=e.target.files[0];if(!f)return;
