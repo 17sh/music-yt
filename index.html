@@ -34,6 +34,7 @@ small{color:var(--mu)}
   <h2>🖼️ พื้นหลัง</h2>
   <input id="bu" type="text" placeholder="วางลิงก์รูปภาพ (https://...jpg / png)">
   <button id="bs">ตั้งพื้นหลัง</button><button class="s" id="bc">ล้าง</button>
+  <label class="btn">เลือกรูปจากเครื่อง<input id="bf" type="file" accept="image/*" hidden></label>
 </div>
 <div class="card">
   <h2>🎵 เพลง</h2>
@@ -106,7 +107,7 @@ function setBg(u){
   if(u){bgl.style.backgroundImage='url("'+u.replace(/"/g,'%22')+'")';document.body.classList.add('hasbg')}
   else{bgl.style.backgroundImage='';document.body.classList.remove('hasbg')}
 }
-try{var sv=localStorage.getItem('bgurl');if(sv){setBg(sv);document.getElementById('bu').value=sv}}catch(e){}
+try{var sv=localStorage.getItem('bgurl');if(sv){setBg(sv);if(sv.indexOf('data:')!==0)document.getElementById('bu').value=sv}}catch(e){}
 document.getElementById('bs').onclick=function(){
   var u=document.getElementById('bu').value.trim();
   if(!u)return;
@@ -118,6 +119,25 @@ document.getElementById('bs').onclick=function(){
 document.getElementById('bc').onclick=function(){
   setBg('');document.getElementById('bu').value='';
   try{localStorage.removeItem('bgurl')}catch(e){}
+};
+document.getElementById('bf').onchange=function(e){
+  var f=e.target.files[0];if(!f)return;
+  var r=new FileReader();
+  r.onload=function(){
+    var im=new Image();
+    im.onload=function(){
+      var sc=Math.min(1,1600/Math.max(im.width,im.height));
+      var c=document.createElement('canvas');
+      c.width=Math.round(im.width*sc);c.height=Math.round(im.height*sc);
+      c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+      var d=c.toDataURL('image/jpeg',.85);
+      setBg(d);document.getElementById('bu').value='';
+      try{localStorage.setItem('bgurl',d)}catch(x){alert('จำรูปไว้ไม่ได้ แต่ใช้ได้ในรอบนี้')}
+    };
+    im.onerror=function(){alert('เปิดรูปนี้ไม่ได้')};
+    im.src=r.result;
+  };
+  r.readAsDataURL(f);
 };
 </script>
 </body>
