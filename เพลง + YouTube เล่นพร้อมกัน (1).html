@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>เพลง + YouTube</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--card:#f2f2f5;--ac:#e5322d;--mu:#777}
+@media (prefers-color-scheme:dark){:root{--bg:#121214;--fg:#f0f0f0;--card:#1f1f24;--mu:#999}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:sans-serif;padding:14px;max-width:700px;margin-inline:auto}
+h2{font-size:15px;margin:0 0 8px}
+.card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:14px}
+input[type=text]{width:100%;padding:10px;border-radius:8px;border:1px solid var(--mu);background:var(--bg);color:var(--fg);font-size:15px}
+button,label.btn{background:var(--ac);color:#fff;border:0;border-radius:8px;padding:10px 14px;font-size:15px;display:inline-block;margin:6px 6px 0 0}
+button.s{background:var(--mu)}
+.vid{position:relative;width:100%;aspect-ratio:16/9;margin-top:10px;background:#000;border-radius:10px;overflow:hidden}
+.vid iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+ul{list-style:none;padding:0;margin:8px 0 0;max-height:180px;overflow:auto}
+li{padding:8px;border-radius:6px;font-size:14px}
+li.on{background:var(--ac);color:#fff}
+audio{width:100%;margin-top:8px}
+input[type=range]{width:100%}
+small{color:var(--mu)}
+</style>
+</head>
+<body>
+<div class="card">
+  <h2>🎵 เพลง</h2>
+  <label class="btn">เลือกไฟล์เพลงจากเครื่อง<input id="f" type="file" accept="audio/*" multiple hidden></label>
+  <input id="mu" type="text" placeholder="หรือวางลิงก์เพลง .mp3" style="margin-top:8px">
+  <button id="mg">เล่นลิงก์</button>
+  <div id="now"><small>ยังไม่ได้เลือกเพลง</small></div>
+  <audio id="a" controls playsinline></audio>
+  <small>ระดับเสียงเพลง</small>
+  <input id="v" type="range" min="0" max="1" step="0.05" value="0.5">
+  <ul id="l"></ul>
+</div>
+<div class="card">
+  <h2>▶️ YouTube</h2>
+  <input id="u" type="text" placeholder="วางลิงก์ YouTube ที่นี่">
+  <button id="go">เปิดวิดีโอ</button><button class="s" id="x">ปิด</button>
+  <div id="vw"></div>
+  <small>ระดับเสียงวิดีโอ YouTube</small>
+  <input id="yv" type="range" min="0" max="100" step="5" value="50">
+  <small>YouTube ต้องใช้อินเทอร์เน็ต / เพลงในเครื่องเล่นออฟไลน์ได้</small>
+</div>
+<script>
+var a=document.getElementById('a'),l=document.getElementById('l'),now=document.getElementById('now'),q=[],i=0;
+a.volume=.5;
+document.getElementById('v').oninput=function(e){a.volume=+e.target.value};
+document.getElementById('f').onchange=function(e){
+  q=q.concat(Array.from(e.target.files).map(function(f){return {name:f.name,url:URL.createObjectURL(f)}}));
+  draw(); if(!a.src)play(0);
+};
+document.getElementById('mg').onclick=function(){
+  var u=document.getElementById('mu').value.trim();
+  if(!u)return;
+  q.push({name:u.split('/').pop()||u,url:u});draw();play(q.length-1);
+};
+function draw(){
+  l.innerHTML='';
+  q.forEach(function(t,n){var li=document.createElement('li');li.textContent=t.name;if(n==i)li.className='on';li.onclick=function(){play(n)};l.appendChild(li)});
+}
+function play(n){
+  i=n;a.src=q[n].url;a.play().catch(function(){});
+  now.innerHTML='<small>กำลังเล่น: '+q[n].name.replace(/</g,'')+'</small>';draw();
+}
+a.onended=function(){if(i+1<q.length)play(i+1);else if(q.length)play(0)};
+var yf=null,ytVol=50;
+function ytCmd(f,a){
+  if(yf&&yf.contentWindow)yf.contentWindow.postMessage(JSON.stringify({event:'command',func:f,args:a||[]}),'https://www.youtube.com');
+}
+document.getElementById('yv').oninput=function(e){ytVol=+e.target.value;ytCmd('setVolume',[ytVol])};
+document.getElementById('go').onclick=function(){
+  var m=document.getElementById('u').value.match(/(?:youtu\.be\/|v=|embed\/|shorts\/|live\/)([\w-]{11})/);
+  if(!m){alert('ลิงก์ไม่ถูกต้อง');return}
+  var o='';
+  try{if(location.origin&&location.origin!=='null')o='&origin='+encodeURIComponent(location.origin)}catch(e){}
+  var w=document.getElementById('vw');
+  w.innerHTML='<div class="vid"><iframe id="ytf" src="https://www.youtube.com/embed/'+m[1]+'?playsinline=1&enablejsapi=1'+o+'" allow="autoplay; encrypted-media; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>';
+  yf=document.getElementById('ytf');
+  yf.onload=function(){
+    yf.contentWindow.postMessage(JSON.stringify({event:'listening'}),'https://www.youtube.com');
+    setTimeout(function(){ytCmd('setVolume',[ytVol])},800);
+    setTimeout(function(){ytCmd('setVolume',[ytVol])},2500);
+  };
+};
+document.getElementById('x').onclick=function(){yf=null;document.getElementById('vw').innerHTML=''};
+</script>
+</body>
+</html>
