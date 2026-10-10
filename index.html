@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#e5322d">
+<link rel="icon" href="icon-192.png">
+<title>เพลง + YouTube</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--card:#f2f2f5;--ac:#e5322d;--mu:#777}
+@media (prefers-color-scheme:dark){:root{--bg:#121214;--fg:#f0f0f0;--card:#1f1f24;--mu:#999}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:sans-serif;padding:14px;max-width:700px;margin-inline:auto}
+h2{font-size:15px;margin:0 0 8px}
+.card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:14px}
+input[type=text]{width:100%;padding:10px;border-radius:8px;border:1px solid var(--mu);background:var(--bg);color:var(--fg);font-size:15px}
+button,label.btn{background:var(--ac);color:#fff;border:0;border-radius:8px;padding:10px 14px;font-size:15px;display:inline-block;margin:6px 6px 0 0}
+button.s{background:var(--mu)}
+.vid{position:relative;width:100%;aspect-ratio:16/9;margin-top:10px;background:#000;border-radius:10px;overflow:hidden}
+.vid iframe,.vid video{position:absolute;inset:0;width:100%;height:100%;border:0}
+ul{list-style:none;padding:0;margin:8px 0 0;max-height:180px;overflow:auto}
+li{padding:8px;border-radius:6px;font-size:14px}
+li.on{background:var(--ac);color:#fff}
+audio{width:100%;margin-top:8px}
+input[type=range]{width:100%}
+small{color:var(--mu)}
+#bgl{position:fixed;inset:0;z-index:-1;background-size:cover;background-position:center}
+.hasbg{--mu:#ddd;color:#fff}
+.hasbg .card{background:rgba(0,0,0,.55);color:#fff;backdrop-filter:blur(6px)}
+.hasbg input[type=text]{background:rgba(0,0,0,.45);color:#fff}
+body{padding-top:58px}
+#top{position:fixed;top:8px;right:8px;z-index:50;display:flex;gap:8px}
+#top button{margin:0;padding:8px 12px;font-size:18px;background:rgba(0,0,0,.6)}
+#dim{position:fixed;inset:0;z-index:-1;background:#000;opacity:0;pointer-events:none}
+#mn{position:fixed;top:0;right:0;bottom:0;width:min(90vw,380px);z-index:60;background:var(--bg);color:var(--fg);padding:14px;overflow:auto;transform:translateX(105%);transition:transform .25s;box-shadow:-4px 0 20px rgba(0,0,0,.45)}
+#mn.o{transform:none}
+.hasbg #mn{color:var(--fg);--mu:#888}
+.hasbg #mn .card{background:var(--card);color:var(--fg)}
+.hasbg #mn input[type=text]{background:var(--bg);color:var(--fg)}
+#lk{position:fixed;inset:0;z-index:100;display:none;touch-action:none;background:rgba(0,0,0,.02)}
+#lk.on{display:block}
+#ub{position:absolute;bottom:calc(24px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);margin:0;min-width:240px;padding:14px 22px;background:linear-gradient(90deg,var(--ac) var(--p,0%),rgba(0,0,0,.75) var(--p,0%));user-select:none;-webkit-user-select:none;touch-action:none}
+select{padding:8px;border-radius:8px;background:var(--bg);color:var(--fg);border:1px solid var(--mu)}
+.row{margin:8px 0}
+</style>
+</head>
+<body>
+<div id="bgl"></div>
+<div id="dim"></div>
+<div id="top"><button id="qs" title="บันทึกจุดที่ฟัง">💾</button><button id="lb" title="ล็อกหน้าจอ">🔒</button><button id="mb" title="เมนู">☰</button></div>
+<div id="mn">
+  <button class="s" id="mc" style="float:right;margin:0">✕</button>
+  <h2 style="font-size:18px">☰ เมนู</h2>
+<div class="card">
+  <h2>🖼️ พื้นหลัง</h2>
+  <input id="bu" type="text" placeholder="วางลิงก์รูปภาพ (https://...jpg / png)">
+  <button id="bs">ตั้งพื้นหลัง</button><button class="s" id="bc">ล้าง</button>
+  <label class="btn">เลือกรูปจากเครื่อง<input id="bf" type="file" accept="image/*" hidden></label>
+</div>
+  <div class="card"><h2>🎨 หน้าตา</h2>
+    <div class="row"><small>สีปุ่ม </small><input id="ac" type="color" value="#e5322d"></div>
+    <small>ความมืดของพื้นหลัง (ให้ตัวหนังสืออ่านง่าย)</small>
+    <input id="dm" type="range" min="0" max="0.8" step="0.05" value="0">
+  </div>
+  <div class="card"><h2>🔒 ล็อกหน้าจอ</h2>
+    <small>ล็อกแล้วแตะจอไม่ติด ปลดโดยกดปุ่มค้างไว้ที่ด้านล่างจอ</small>
+    <div class="row"><button id="lb2">ล็อกตอนนี้</button></div>
+    <small>ล็อกอัตโนมัติเมื่อไม่แตะจอ </small>
+    <select id="al"><option value="0">ปิด</option><option value="30">30 วินาที</option><option value="60">1 นาที</option><option value="180">3 นาที</option></select>
+  </div>
+  <div class="card"><h2>⏱️ ตั้งเวลาปิด</h2>
+    <button class="s" data-sl="15">15 นาที</button><button class="s" data-sl="30">30 นาที</button><button class="s" data-sl="60">60 นาที</button><button class="s" data-sl="0">ยกเลิก</button>
+    <div id="slt"><small>ยังไม่ได้ตั้ง</small></div>
+  </div>
+  <div class="card"><h2>⚙️ อื่น ๆ</h2>
+    <div class="row"><small>ความเร็วเพลง </small><select id="sp"><option value="0.75">0.75x</option><option value="1" selected>1x</option><option value="1.25">1.25x</option><option value="1.5">1.5x</option><option value="2">2x</option></select></div>
+    <div class="row"><label><input type="checkbox" id="wk"> กันจอดับขณะเปิดแอพ</label></div>
+    <button class="s" id="pa">⏸ หยุดทั้งหมด</button>
+  </div>
+</div>
+<div id="lk"><button id="ub">🔒 กดค้างเพื่อปลดล็อก</button></div>
+<div class="card">
+  <h2>🎵 เพลง</h2>
+  <label class="btn">เลือกไฟล์เพลงจากเครื่อง<input id="f" type="file" accept="audio/*" multiple hidden></label>
+  <input id="mu" type="text" placeholder="หรือวางลิงก์เพลง .mp3" style="margin-top:8px">
+  <button id="mg">เล่นลิงก์</button>
+  <div id="now"><small>ยังไม่ได้เลือกเพลง</small></div>
+  <audio id="a" controls playsinline></audio>
+  <div><button class="s" id="pv">⏮</button><button class="s" id="nx">⏭</button><button class="s" id="md">🔁 วนทั้งหมด</button></div>
+  <small>ระดับเสียงเพลง</small>
+  <input id="v" type="range" min="0" max="1" step="0.05" value="0.5">
+  <ul id="l"></ul>
+</div>
+<div class="card">
+  <h2>▶️ วิดีโอ / YouTube</h2>
+  <input id="u" type="text" placeholder="วางลิงก์ YouTube หรือลิงก์ไฟล์ .mp4 / .mp3">
+  <button id="go">เปิด</button><button class="s" id="x">ปิด</button>
+  <label class="btn">เลือกวิดีโอ/เสียงจากเครื่อง<input id="vf" type="file" accept="video/*,audio/*" hidden></label>
+  <div id="vw"></div>
+  <small>ระดับเสียงวิดีโอ / YouTube</small>
+  <input id="vv" type="range" min="0" max="1" step="0.05" value="1">
+</div>
+<div class="card">
+  <h2>💾 บันทึกจุดที่ฟัง</h2>
+  <input id="bn" type="text" placeholder="ตั้งชื่อ (ไม่ใส่ก็ได้)">
+  <button id="bsv">💾 บันทึกตอนนี้</button><br>
+  <small>บันทึกเพลงและวิดีโอที่กำลังเล่น พร้อมเวลา แล้วกลับมากด "โหลด" เพื่อเล่นต่อจุดเดิม</small>
+  <ul id="bl" style="max-height:300px"></ul>
+</div>
+<div class="card">
+  <small>แอพจำเพลง/วิดีโอที่เล่นล่าสุดและตำแหน่งที่เล่นไว้ให้อัตโนมัติ (ไฟล์จากเครื่องเก็บไว้ในเบราว์เซอร์ ใช้พื้นที่เครื่อง)</small><br>
+  <button class="s" id="clr">ล้างข้อมูลที่จำไว้</button>
+</div>
+<script>
+var $=function(i){return document.getElementById(i)};
+function ld(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
+function sv(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+/* ---------- IndexedDB (เก็บไฟล์ที่เคยเล่น) ---------- */
+var db=null;
+function openDB(){return new Promise(function(res){
+  try{var r=indexedDB.open('musicyt',1);
+    r.onupgradeneeded=function(){r.result.createObjectStore('f')};
+    r.onsuccess=function(){db=r.result;res()};
+    r.onerror=function(){res()};
+  }catch(e){res()}
+})}
+function tx(mode,fn){return new Promise(function(res){
+  if(!db)return res(null);
+  try{var t=db.transaction('f',mode),out=null;
+    var rq=fn(t.objectStore('f'));
+    if(rq)rq.onsuccess=function(){out=rq.result};
+    t.oncomplete=function(){res(out)};t.onerror=function(){res(null)};
+  }catch(e){res(null)}
+})}
+function dbPut(k,v){return tx('readwrite',function(s){return s.put(v,k)})}
+function dbGet(k){return tx('readonly',function(s){return s.get(k)})}
+function dbDel(k){return tx('readwrite',function(s){return s.delete(k)})}
+function dbClear(){return tx('readwrite',function(s){return s.clear()})}
+/* ---------- เสียงที่ปรับไว้ ---------- */
+var a=$('a'),q=[],i=0,yf=null,cur=null;
+var vol=ld('vol')||{m:.5,v:1};
+a.volume=vol.m;$('v').value=vol.m;$('vv').value=vol.v;
+function saveVol(){sv('vol',{m:+$('v').value,v:+$('vv').value})}
+$('v').oninput=function(e){a.volume=+e.target.value;saveVol()};
+/* ---------- เพลง ---------- */
+function setMeta(name){
+  if(!('mediaSession' in navigator))return;
+  try{navigator.mediaSession.metadata=new MediaMetadata({title:name.replace(/\.[^.]+$/,''),artist:'เพลง + YouTube'})}catch(e){}
+}
+function saveMusic(){
+  if(!q.length)return;
+  if(a.src&&a.readyState===0)return;
+  sv('mq',{q:q.map(function(t){return {id:t.id,name:t.name,remote:t.remote||null}}),i:i,t:a.currentTime||0});
+}
+function draw(){
+  var l=$('l');l.innerHTML='';
+  q.forEach(function(t,n){var li=document.createElement('li');li.style.display='flex';var sp=document.createElement('span');sp.textContent=t.name;sp.style.flex='1';var x=document.createElement('b');x.textContent='✕';x.style.padding='0 8px';x.onclick=function(e){e.stopPropagation();rm(n)};li.appendChild(sp);li.appendChild(x);if(n==i)li.className='on';li.onclick=function(){play(n)};l.appendChild(li)});
+}
+function resolveUrl(t){
+  if(t.u)return Promise.resolve(t.u);
+  if(t.remote){t.u=t.remote;return Promise.resolve(t.u)}
+  return dbGet(t.id).then(function(b){if(!b)return null;t.u=URL.createObjectURL(b);return t.u});
+}
+function play(n,start,auto){
+  if(!q[n])return;
+  i=n;
+  resolveUrl(q[n]).then(function(u){
+    if(!u){$('now').innerHTML='<small>ไม่พบไฟล์ '+q[n].name.replace(/</g,'')+' (เลือกใหม่อีกครั้ง)</small>';return}
+    a.src=u;
+    if(start)a.addEventListener('loadedmetadata',function(){a.currentTime=start},{once:true});
+    if(auto!==false)a.play().catch(function(){});
+    $('now').innerHTML='<small>เพลง: '+q[n].name.replace(/</g,'')+'</small>';
+    setMeta(q[n].name);draw();
+    if(auto!==false)saveMusic();
+  });
+}
+$('f').onchange=function(e){
+  var fs=Array.from(e.target.files),first=q.length;
+  Promise.all(fs.map(function(f){
+    var id='m'+Date.now()+Math.random().toString(36).slice(2,7);
+    return dbPut(id,f).then(function(){q.push({id:id,name:f.name})});
+  })).then(function(){draw();if(first===0)play(0);else saveMusic()});
+  e.target.value='';
+};
+$('mg').onclick=function(){
+  var u=$('mu').value.trim();if(!u)return;
+  q.push({id:'r'+Date.now(),name:u.split('/').pop().split('?')[0]||u,remote:u});
+  draw();play(q.length-1);
+};
+var mode=0,MN=['🔁 วนทั้งหมด','🔂 วนเพลงเดียว','🔀 สุ่ม'];
+function nextIdx(man){
+  if(!q.length)return 0;
+  if(mode===1&&!man)return i;
+  if(mode===2&&q.length>1){var r;do{r=Math.floor(Math.random()*q.length)}while(r===i);return r}
+  return (i+1)%q.length;
+}
+a.onended=function(){if(q.length)play(nextIdx())};
+function rm(n){
+  var t=q[n];if(!t)return;
+  if(!t.remote&&!used(t.id))dbDel(t.id);
+  q.splice(n,1);
+  if(n<i)i--;
+  else if(n===i){a.pause();if(q.length){i=Math.min(i,q.length-1);play(i,0,false)}else{a.removeAttribute('src');$('now').innerHTML='<small>ยังไม่ได้เลือกเพลง</small>'}}
+  draw();saveMusic();
+  if(!q.length)try{localStorage.removeItem('mq')}catch(e){}
+}
+(function(){
+  if(!('mediaSession' in navigator))return;
+  var ms=navigator.mediaSession;
+  function h(n,f){try{ms.setActionHandler(n,f)}catch(e){}}
+  h('play',function(){a.play()});h('pause',function(){a.pause()});
+  h('previoustrack',function(){if(q.length)play((i-1+q.length)%q.length)});
+  h('nexttrack',function(){if(q.length)play((i+1)%q.length)});
+  h('seekbackward',function(){a.currentTime=Math.max(0,a.currentTime-10)});
+  h('seekforward',function(){a.currentTime=Math.min(a.duration||1e9,a.currentTime+10)});
+})();
+/* ---------- วิดีโอ / YouTube ---------- */
+function ytVolSet(){
+  if(yf&&yf.contentWindow)yf.contentWindow.postMessage(JSON.stringify({event:'command',func:'setVolume',args:[Math.round(+$('vv').value*100)]}),'https://www.youtube.com');
+}
+$('vv').oninput=function(e){
+  var v=$('vp');if(v)v.volume=+e.target.value;
+  ytVolSet();saveVol();
+};
+function openYT(id,t,auto){
+  cur={k:'yt',id:id,t:t||0};
+  var o='';
+  try{if(location.origin&&location.origin!=='null')o='&origin='+encodeURIComponent(location.origin)}catch(e){}
+  $('vw').innerHTML='<div class="vid"><iframe id="ytf" src="https://www.youtube.com/embed/'+id+'?playsinline=1&enablejsapi=1&start='+Math.floor(t||0)+(auto?'&autoplay=1':'')+o+'" allow="autoplay; encrypted-media; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>';
+  yf=$('ytf');
+  yf.onload=function(){
+    yf.contentWindow.postMessage(JSON.stringify({event:'listening'}),'https://www.youtube.com');
+    setTimeout(ytVolSet,800);setTimeout(ytVolSet,2500);
+  };
+}
+function openVid(u,st,t,auto){
+  cur=st;cur.t=t||0;yf=null;
+  $('vw').innerHTML='<div class="vid"><video id="vp" controls playsinline></video></div>';
+  var v=$('vp');v.src=u;v.volume=+$('vv').value;
+  if(t)v.addEventListener('loadedmetadata',function(){v.currentTime=t},{once:true});
+  if(auto)v.play().catch(function(){});
+}
+window.addEventListener('message',function(e){
+  if(e.origin!=='https://www.youtube.com'||!cur||cur.k!=='yt')return;
+  var d;try{d=typeof e.data==='string'?JSON.parse(e.data):e.data}catch(x){return}
+  if(d&&d.info&&typeof d.info.currentTime==='number'&&d.info.currentTime>0)cur.t=d.info.currentTime;
+});
+function saveVid(){
+  if(!cur)return;
+  if(cur.k!=='yt'){var v=$('vp');if(v&&v.readyState>0)cur.t=v.currentTime}
+  sv('vs',cur);
+}
+$('go').onclick=function(){
+  var raw=$('u').value.trim();
+  var m=raw.match(/(?:youtu\.be\/|v=|embed\/|shorts\/|live\/)([\w-]{11})/);
+  if(m){openYT(m[1],0,true);saveVid();return}
+  if(/^https?:\/\/.+\.(mp4|webm|mov|m4v|mp3|m4a|wav|ogg|oga|aac|flac|opus)(\?.*)?$/i.test(raw)){openVid(raw,{k:'url',url:raw},0,true);saveVid();return}
+  alert('ลิงก์ไม่ถูกต้อง');
+};
+$('x').onclick=function(){yf=null;cur=null;$('vw').innerHTML='';try{localStorage.removeItem('vs')}catch(e){}};
+$('vf').onchange=function(e){
+  var f=e.target.files[0];if(!f)return;
+  var old=cur&&cur.k==='blob'?cur.id:null;
+  var id='v'+Date.now();
+  dbPut(id,f).then(function(){
+    if(old&&!used(old))dbDel(old);
+    openVid(URL.createObjectURL(f),{k:'blob',id:id,name:f.name},0,true);saveVid();
+  });
+  e.target.value='';
+};
+/* ---------- กู้คืนตอนเปิดแอพ ---------- */
+openDB().then(function(){
+  try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
+  var m=ld('mq');
+  if(m&&m.q&&m.q.length){q=m.q;i=Math.min(m.i||0,q.length-1);draw();play(i,m.t||0,false)}
+  var v=ld('vs');
+  if(v){
+    if(v.k==='yt')openYT(v.id,v.t,false);
+    else if(v.k==='url')openVid(v.url,{k:'url',url:v.url},v.t,false);
+    else if(v.k==='blob')dbGet(v.id).then(function(b){if(b)openVid(URL.createObjectURL(b),{k:'blob',id:v.id,name:v.name},v.t,false)});
+  }
+});
+setInterval(function(){saveMusic();saveVid()},3000);
+document.addEventListener('visibilitychange',function(){if(document.hidden){saveMusic();saveVid()}});
+window.addEventListener('pagehide',function(){saveMusic();saveVid()});
+a.onpause=saveMusic;
+$('clr').onclick=function(){
+  if(!confirm('ล้างรายการเพลง วิดีโอ ที่บันทึกไว้ และไฟล์ที่จำไว้ทั้งหมด?'))return;
+  dbClear();try{localStorage.removeItem('mq');localStorage.removeItem('vs');localStorage.removeItem('bm')}catch(e){}
+  bms=[];drawBm();
+  q=[];i=0;cur=null;yf=null;a.pause();a.removeAttribute('src');a.load();
+  $('vw').innerHTML='';$('l').innerHTML='';$('now').innerHTML='<small>ยังไม่ได้เลือกเพลง</small>';
+};
+/* ---------- พื้นหลัง ---------- */
+var bgl=$('bgl');
+function setBg(u){
+  if(u){bgl.style.backgroundImage='url("'+u.replace(/"/g,'%22')+'")';document.body.classList.add('hasbg')}
+  else{bgl.style.backgroundImage='';document.body.classList.remove('hasbg')}
+}
+try{var sb=localStorage.getItem('bgurl');if(sb){setBg(sb);if(sb.indexOf('data:')!==0)$('bu').value=sb}}catch(e){}
+$('bs').onclick=function(){
+  var u=$('bu').value.trim();if(!u)return;
+  var im=new Image();
+  im.onload=function(){setBg(u);try{localStorage.setItem('bgurl',u)}catch(e){}};
+  im.onerror=function(){alert('โหลดรูปไม่ได้ ลองลิงก์รูปตรง ๆ ที่ลงท้ายด้วย .jpg หรือ .png')};
+  im.src=u;
+};
+$('bc').onclick=function(){setBg('');$('bu').value='';try{localStorage.removeItem('bgurl')}catch(e){}};
+$('bf').onchange=function(e){
+  var f=e.target.files[0];if(!f)return;
+  var r=new FileReader();
+  r.onload=function(){
+    var im=new Image();
+    im.onload=function(){
+      var sc=Math.min(1,1600/Math.max(im.width,im.height)),c=document.createElement('canvas');
+      c.width=Math.round(im.width*sc);c.height=Math.round(im.height*sc);
+      c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+      var d=c.toDataURL('image/jpeg',.85);
+      setBg(d);$('bu').value='';
+      try{localStorage.setItem('bgurl',d)}catch(x){alert('จำรูปไว้ไม่ได้ แต่ใช้ได้ในรอบนี้')}
+    };
+    im.onerror=function(){alert('เปิดรูปนี้ไม่ได้')};
+    im.src=r.result;
+  };
+  r.readAsDataURL(f);
+};
+/* ---------- เมนู / ล็อก / ตั้งค่า ---------- */
+$('mb').onclick=function(){$('mn').classList.add('o')};
+$('mc').onclick=function(){$('mn').classList.remove('o')};
+var cfg=ld('cfg')||{ac:'#e5322d',dm:0,sp:1,md:0,wk:0,al:0};
+var wl=null;
+function wake(){if(!cfg.wk||!navigator.wakeLock||document.hidden)return;navigator.wakeLock.request('screen').then(function(l){wl=l}).catch(function(){})}
+function unwake(){if(wl){wl.release().catch(function(){});wl=null}}
+function applyCfg(){
+  document.documentElement.style.setProperty('--ac',cfg.ac);
+  $('dim').style.opacity=cfg.dm;
+  a.defaultPlaybackRate=a.playbackRate=cfg.sp;
+  $('md').textContent=MN[mode];
+  if(cfg.wk)wake();else unwake();
+}
+function upd(){cfg={ac:$('ac').value,dm:+$('dm').value,sp:+$('sp').value,md:mode,wk:$('wk').checked?1:0,al:+$('al').value};sv('cfg',cfg);applyCfg();idle()}
+$('ac').value=cfg.ac;$('dm').value=cfg.dm;$('sp').value=cfg.sp;$('wk').checked=!!cfg.wk;$('al').value=cfg.al||0;mode=cfg.md||0;
+['ac','dm'].forEach(function(k){$(k).oninput=upd});
+['sp','wk','al'].forEach(function(k){$(k).onchange=upd});
+document.addEventListener('visibilitychange',function(){if(!document.hidden)wake()});
+$('md').onclick=function(){mode=(mode+1)%3;upd()};
+$('pv').onclick=function(){if(q.length)play((i-1+q.length)%q.length)};
+$('nx').onclick=function(){if(q.length)play(nextIdx(true))};
+/* ล็อก */
+var lkEl=$('lk'),ub=$('ub'),ht=null,hs=0;
+function lock(on){
+  lkEl.classList.toggle('on',on);
+  try{localStorage.setItem('lock',on?'1':'0')}catch(e){}
+  if(on){$('mn').classList.remove('o');try{history.pushState({l:1},'')}catch(e){}}
+}
+$('lb').onclick=function(){lock(true)};
+$('lb2').onclick=function(){lock(true)};
+window.addEventListener('popstate',function(){if(lkEl.classList.contains('on')){try{history.pushState({l:1},'')}catch(e){}}});
+lkEl.addEventListener('touchmove',function(e){e.preventDefault()},{passive:false});
+lkEl.addEventListener('contextmenu',function(e){e.preventDefault()});
+function hend(){clearInterval(ht);ub.style.setProperty('--p','0%')}
+ub.addEventListener('pointerdown',function(e){
+  e.preventDefault();hs=Date.now();clearInterval(ht);
+  ht=setInterval(function(){
+    var p=Math.min(100,(Date.now()-hs)/12);
+    ub.style.setProperty('--p',p+'%');
+    if(p>=100){hend();lock(false);idle()}
+  },40);
+});
+['pointerup','pointercancel','pointerleave'].forEach(function(n){ub.addEventListener(n,hend)});
+var alT=null;
+function idle(){clearTimeout(alT);if(cfg.al&&!lkEl.classList.contains('on'))alT=setTimeout(function(){lock(true)},cfg.al*1000)}
+['pointerdown','touchstart','keydown'].forEach(function(n){document.addEventListener(n,idle,{passive:true})});
+/* ตั้งเวลาปิด */
+var slT=null,slEnd=0;
+function stopAll(){
+  a.pause();var v=$('vp');if(v)v.pause();
+  if(yf&&yf.contentWindow)yf.contentWindow.postMessage(JSON.stringify({event:'command',func:'pauseVideo',args:[]}),'https://www.youtube.com');
+}
+function showSl(){$('slt').innerHTML='<small>'+(slEnd?'จะหยุดอีก '+Math.max(1,Math.ceil((slEnd-Date.now())/60000))+' นาที':'ยังไม่ได้ตั้ง')+'</small>'}
+document.querySelectorAll('[data-sl]').forEach(function(b){
+  b.onclick=function(){
+    clearTimeout(slT);slEnd=0;var m=+b.getAttribute('data-sl');
+    if(m){slEnd=Date.now()+m*60000;slT=setTimeout(function(){stopAll();slEnd=0;showSl()},m*60000)}
+    showSl();
+  };
+});
+setInterval(showSl,15000);
+$('pa').onclick=stopAll;
+applyCfg();idle();
+try{if(localStorage.getItem('lock')==='1')lock(true)}catch(e){}
+/* ---------- บันทึกจุดที่ฟัง ---------- */
+var bms=ld('bm')||[];
+function toast(m){var d=document.createElement('div');d.textContent=m;d.style.cssText='position:fixed;left:50%;bottom:80px;transform:translateX(-50%);background:rgba(0,0,0,.85);color:#fff;padding:10px 16px;border-radius:20px;z-index:90;font-size:14px';document.body.appendChild(d);setTimeout(function(){d.remove()},1800)}
+function used(id){return bms.some(function(b){return (b.m&&b.m.id===id)||(b.v&&b.v.id===id)})}
+function fmt(t){t=Math.floor(t||0);var m=Math.floor(t/60),r=t%60;return m+':'+(r<10?'0':'')+r}
+function vname(v){return v.k==='yt'?'YouTube '+v.id:(v.k==='blob'?v.name:v.url.split('/').pop().split('?')[0])}
+function saveBms(){sv('bm',bms)}
+function saveBm(name){
+  var o={d:Date.now(),n:name};
+  if(q[i]&&a.src)o.m={id:q[i].id,name:q[i].name,remote:q[i].remote||null,t:a.currentTime||0};
+  if(cur){saveVid();o.v=JSON.parse(JSON.stringify(cur))}
+  if(!o.m&&!o.v){toast('ยังไม่มีอะไรให้บันทึก');return}
+  if(!o.n)o.n=new Date(o.d).toLocaleString('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+  bms.unshift(o);saveBms();drawBm();toast('บันทึกแล้ว: '+o.n);
+}
+function drawBm(){
+  var l=$('bl');l.innerHTML='';
+  if(!bms.length){l.innerHTML='<small>ยังไม่มีที่บันทึกไว้</small>';return}
+  bms.forEach(function(b,n){
+    var li=document.createElement('li');
+    var h=document.createElement('b');h.textContent=b.n;li.appendChild(h);
+    if(b.m){var d1=document.createElement('div');d1.innerHTML='<small></small>';d1.firstChild.textContent='🎵 '+b.m.name+' @ '+fmt(b.m.t);li.appendChild(d1)}
+    if(b.v){var d2=document.createElement('div');d2.innerHTML='<small></small>';d2.firstChild.textContent='▶️ '+vname(b.v)+' @ '+fmt(b.v.t);li.appendChild(d2)}
+    var lb=document.createElement('button');lb.textContent='▶ โหลด';lb.onclick=function(){loadBm(b)};
+    var db_=document.createElement('button');db_.className='s';db_.textContent='🗑 ลบ';db_.onclick=function(){delBm(n)};
+    li.appendChild(lb);li.appendChild(db_);l.appendChild(li);
+  });
+}
+function delBm(n){
+  var b=bms[n];if(!b||!confirm('ลบ "'+b.n+'" ?'))return;
+  bms.splice(n,1);saveBms();
+  if(b.m&&!b.m.remote&&!q.some(function(t){return t.id===b.m.id})&&!used(b.m.id))dbDel(b.m.id);
+  if(b.v&&b.v.k==='blob'&&!(cur&&cur.id===b.v.id)&&!used(b.v.id))dbDel(b.v.id);
+  drawBm();
+}
+function loadBm(b){
+  if(b.m){
+    var k=-1;for(var x=0;x<q.length;x++)if(q[x].id===b.m.id){k=x;break}
+    if(k<0){q.push({id:b.m.id,name:b.m.name,remote:b.m.remote||null});k=q.length-1}
+    play(k,b.m.t);
+  }
+  if(b.v){
+    var v=b.v;
+    if(v.k==='yt'){openYT(v.id,v.t,true);saveVid()}
+    else if(v.k==='url'){openVid(v.url,{k:'url',url:v.url},v.t,true);saveVid()}
+    else dbGet(v.id).then(function(f){
+      if(!f){toast('ไม่พบไฟล์วิดีโอที่บันทึกไว้');return}
+      openVid(URL.createObjectURL(f),{k:'blob',id:v.id,name:v.name},v.t,true);saveVid();
+    });
+  }
+  toast('โหลดแล้ว: '+b.n);
+}
+$('bsv').onclick=function(){saveBm($('bn').value.trim());$('bn').value=''};
+$('qs').onclick=function(){saveBm('')};
+drawBm();
+if('serviceWorker' in navigator&&location.protocol==='https:'){
+  window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})});
+}
+</script>
+</body>
+</html>
